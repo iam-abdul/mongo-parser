@@ -3,28 +3,28 @@ const fs = require("fs");
 
 const modelString = `
 
-// const mongoose = require("mongoose");
-// const Schema = mongoose.Schema;
+const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 let UserSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
   },
-  // email: {
-  //   type: String,
-  //   required: true,
-  //   unique: true,
-  // },
-  // password: {
-  //   type: String,
-  //   required: true,
-  // },
-  // date: {
-  //   type: Date,
-  //   default: Date.now,
-  // },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  date: {
+    type: Date,
+    default: Date.now,
+  },
 });
-//  const User = mongoose.model("User", UserSchema);
+ const User = mongoose.model("User", UserSchema);
  UserSchema = new Schema({
     user: {
       type: Schema.Types.fake.ObjectId,
@@ -105,7 +105,6 @@ function traverseArguments(args) {
           }
         });
       }
-
       result[key] = value;
     }
   });
@@ -114,16 +113,8 @@ function traverseArguments(args) {
 }
 
 const extractTheSchemaProperties = (args) => {
-  // getKeyValueRecursively(argument[0]);
-  // for (let x = 0; x < argument.length; x++) {
-  //   const thisArgument = argument[x];
-  //   // getKeyValueRecursively(thisArgument);
-  //   // console.log(thisArgument);
-  // }
-
   const result = traverseArguments(args);
-
-  console.log("the result ", result);
+  // console.log("the result ", result);
   return result;
 };
 
@@ -144,10 +135,10 @@ const findTheImmediateSchemaBeforeGivenNode = (
         thisNodeExpression.left.name === jsSchemaName
       ) {
         console.log("found the schema reassignment");
-        extractTheSchemaProperties(
+        const model = extractTheSchemaProperties(
           thisNodeExpression.right.arguments[0].properties
         );
-        break;
+        return model;
       }
     } else {
       const thisNodeDeclarations = thisNode.declarations;
@@ -161,17 +152,12 @@ const findTheImmediateSchemaBeforeGivenNode = (
         if (
           currentDeclaration.type === "VariableDeclarator" &&
           currentDeclaration.id.name === jsSchemaName
-          // currentDeclaration.init.type === "NewExpression" &&
-          // currentDeclaration.init.callee &&
-          // currentDeclaration.init.callee.type === "MemberExpression" &&
-          // currentDeclaration.init.callee.object.name === "mongoose" &&
-          // currentDeclaration.init.callee.property.name === "Schema"
         ) {
-          console.log("found the schema declaration");
-          break;
-          // extractTheSchemaProperties(
-          //   currentDeclaration.init.arguments[0].properties
-          // );
+          const model = extractTheSchemaProperties(
+            currentDeclaration.init.arguments[0].properties
+          );
+
+          return model;
         }
       }
     }
@@ -199,8 +185,13 @@ for (let x = 0; x < programBody.length; x++) {
        * with this jsSchemaName, there could be multiple declarations
        * we need to find the immediate before declaration
        */
-      findTheImmediateSchemaBeforeGivenNode(nodeId, programBody, jsSchemaName);
-      models.push({ model: modelName, jsSchemaName, schema: {}, nodeId });
+      const allModels = [];
+      const schema = findTheImmediateSchemaBeforeGivenNode(
+        nodeId,
+        programBody,
+        jsSchemaName
+      );
+      models.push({ model: modelName, jsSchemaName, schema: schema, nodeId });
     }
   }
 }
