@@ -3,16 +3,21 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon -x \"clear && node server.js\" --ignore ast.json"
+    "dev": "nodemon -x \"clear && node index.js\" --ignore ast.json",
+    "test": "vitest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "acorn": "^8.11.3",
-    "mongoose": "^8.3.4",
-    "nodemon": "^3.1.0"
+    "mongoose": "^8.3.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "nodemon": "^3.1.0",
+    "vitest": "^1.6.0"
   }
 }

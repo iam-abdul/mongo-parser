@@ -1,11 +1,10 @@
-const acorn = require("acorn");
-const fs = require("fs");
+import { parse } from "acorn";
 
 const modelString = `
-
-const mongoose = require("mongoose");
+// const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const Schema = mongoose.Schema;
-let UserSchema = new mongoose.Schema({
+let UserSchema = new Schema({
   name: {
     type: String,
     required: true,
@@ -43,19 +42,40 @@ let UserSchema = new mongoose.Schema({
       type: Date,
       default: Date.now,
     },
+    comments: [{
+      text: {
+        type: String,
+        required: true,
+      },
+      postedBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    }],
   });
   const Post = mongoose.model('Post', UserSchema);
 
+  const FollowSchema = new Schema({
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    followers: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+    following: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+  });
+
+  const Follow = mongoose.model('Follow', FollowSchema);
+
 `;
 
-// parse model string
-const ast = acorn.parse(modelString, {
-  sourceType: "module",
-});
-
 // write the ast to a file
-
-fs.writeFileSync("ast.json", JSON.stringify(ast, null, 2));
 
 /*
  * i will follow this format
@@ -66,10 +86,6 @@ fs.writeFileSync("ast.json", JSON.stringify(ast, null, 2));
  *    }
  *}
  */
-
-// filtering the model names
-const models = [];
-const programBody = ast.body;
 
 const traverseMemberExpressionValue = (expressions) => {
   const propertName = expressions.property.name;
@@ -164,36 +180,49 @@ const findTheImmediateSchemaBeforeGivenNode = (
   }
 };
 
-for (let x = 0; x < programBody.length; x++) {
-  const thisNode = programBody[x];
-  const thisNodeDeclarations = thisNode.declarations;
-  if (!thisNodeDeclarations) continue;
-  for (let y = 0; y < thisNodeDeclarations.length; y++) {
-    const currentDeclaration = thisNodeDeclarations[y];
-    if (
-      currentDeclaration.type === "VariableDeclarator" &&
-      currentDeclaration.init.type === "CallExpression" &&
-      currentDeclaration.init.callee.type === "MemberExpression" &&
-      currentDeclaration.init.callee.object.name === "mongoose" &&
-      currentDeclaration.init.callee.property.name === "model"
-    ) {
-      const modelName = currentDeclaration.init.arguments[0].value;
-      const jsSchemaName = currentDeclaration.init.arguments[1].name;
-      const nodeId = x;
+const extractModel = (fileContent) => {
+  // parse model string
+  const ast = parse(fileContent, {
+    sourceType: "module",
+  });
+  // filtering the model names
+  const models = [];
+  const programBody = ast.body;
+  for (let x = 0; x < programBody.length; x++) {
+    const thisNode = programBody[x];
+    const thisNodeDeclarations = thisNode.declarations;
+    if (!thisNodeDeclarations) continue;
+    for (let y = 0; y < thisNodeDeclarations.length; y++) {
+      const currentDeclaration = thisNodeDeclarations[y];
+      if (
+        currentDeclaration.type === "VariableDeclarator" &&
+        currentDeclaration.init.type === "CallExpression" &&
+        currentDeclaration.init.callee.type === "MemberExpression" &&
+        currentDeclaration.init.callee.object.name === "mongoose" &&
+        currentDeclaration.init.callee.property.name === "model"
+      ) {
+        const modelName = currentDeclaration.init.arguments[0].value;
+        const jsSchemaName = currentDeclaration.init.arguments[1].name;
+        const nodeId = x;
 
-      /**
-       * with this jsSchemaName, there could be multiple declarations
-       * we need to find the immediate before declaration
-       */
-      const allModels = [];
-      const schema = findTheImmediateSchemaBeforeGivenNode(
-        nodeId,
-        programBody,
-        jsSchemaName
-      );
-      models.push({ model: modelName, jsSchemaName, schema: schema, nodeId });
+        /**
+         * with this jsSchemaName, there could be multiple declarations
+         * we need to find the immediate before declaration
+         */
+
+        const schema = findTheImmediateSchemaBeforeGivenNode(
+          nodeId,
+          programBody,
+          jsSchemaName
+        );
+        models.push({ model: modelName, jsSchemaName, schema: schema, nodeId });
+      }
     }
   }
-}
 
-console.log(models);
+  // fs.writeFileSync("ast.json", JSON.stringify(models, null, 2));
+
+  return models;
+};
+
+export default extractModel;
