@@ -10,19 +10,19 @@ let UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  date: {
-    type: Date,
-    default: Date.now,
-  },
+  // email: {
+  //   type: String,
+  //   required: true,
+  //   unique: true,
+  // },
+  // password: {
+  //   type: String,
+  //   required: true,
+  // },
+  // date: {
+  //   type: Date,
+  //   default: Date.now,
+  // },
 });
 //  const User = mongoose.model("User", UserSchema);
  UserSchema = new Schema({
@@ -31,10 +31,10 @@ let UserSchema = new mongoose.Schema({
       ref: 'User',
       required: true,
     },
-    title: {
+    title: [{
       type: String,
       required: true,
-    },
+    }],
     content: {
       type: String,
       required: true,
@@ -98,6 +98,12 @@ function traverseArguments(args) {
         value = traverseArguments(arg.value.properties);
       } else if (arg.value.type === "MemberExpression") {
         value = traverseMemberExpressionValue(arg.value);
+      } else if (arg.value.type === "ArrayExpression") {
+        value = arg.value.elements.map((element) => {
+          if (element.type === "ObjectExpression") {
+            return traverseArguments(element.properties);
+          }
+        });
       }
 
       result[key] = value;
