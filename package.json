@@ -1,16 +1,29 @@
 {
-  "name": "mongo-parser",
-  "version": "1.0.0",
+  "name": "mongoose-parser",
+  "version": "0.0.3",
   "description": "",
   "main": "index.js",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iam-abdul/mongo-parser-visualizer.git"
+  },
   "scripts": {
     "dev": "nodemon -x \"clear && node index.js\" --ignore ast.json",
     "test": "vitest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "mongodb schema parser",
+    "mongoose schema parser",
+    "mongoose schema",
+    "mongodb schema",
+    "schema parser",
+    "schema",
+    "parser",
+    "mongoose schema parser from file"
+  ],
+  "author": "Abdul Rehman (Abd038)",
+  "license": "MIT",
   "dependencies": {
     "acorn": "^8.11.3",
     "mongoose": "^8.3.4"
