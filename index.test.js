@@ -270,3 +270,88 @@ it("should also work with module.exports", () => {
     },
   ]);
 });
+
+it("should be able to extract model with module.exports = ", () => {
+  const fileContent = `
+  const mongoose = require("mongoose");
+  const timestamps = require("mongoose-timestamp");
+  const uniqueValidator = require("mongoose-unique-validator");
+  
+  const AdminSchema = new mongoose.Schema({
+      name: { type: String, default: null },
+      // role: { type: String, enum: ['super-admin', 'executive', 'data-entry-operator'] },
+      roleId: { type: mongoose.Schema.Types.ObjectId, ref: "Roles", default: null },
+      email: { type: String, default: null, unique: true },
+      phone: { type: Number, default: null },
+      location: { type: String, default: null },
+      address: { type: String, default: null },
+      password: { type: String },
+      image: { type: String, default: null },
+      active: { type: Boolean, default: true },
+      isDeleted: { type: Boolean, default: false },
+      created_by: { type: mongoose.Schema.Types.ObjectId, ref: "Admins", default: null },
+  });
+  
+  AdminSchema.plugin(timestamps);
+  AdminSchema.plugin(uniqueValidator);
+  module.exports = mongoose.models.Admins || mongoose.model("Admins", AdminSchema);
+  
+  `;
+
+  const result = extractModel(fileContent);
+  expect(result).toEqual([
+    {
+      model: "Admins",
+      jsSchemaName: "AdminSchema",
+      schema: {
+        name: {
+          type: "String",
+          default: null,
+        },
+        roleId: {
+          type: "mongoose.Schema.Types.ObjectId",
+          ref: "Roles",
+          default: null,
+        },
+        email: {
+          type: "String",
+          default: null,
+          unique: true,
+        },
+        phone: {
+          type: "Number",
+          default: null,
+        },
+        location: {
+          type: "String",
+          default: null,
+        },
+        address: {
+          type: "String",
+          default: null,
+        },
+        password: {
+          type: "String",
+        },
+        image: {
+          type: "String",
+          default: null,
+        },
+        active: {
+          type: "Boolean",
+          default: true,
+        },
+        isDeleted: {
+          type: "Boolean",
+          default: false,
+        },
+        created_by: {
+          type: "mongoose.Schema.Types.ObjectId",
+          ref: "Admins",
+          default: null,
+        },
+      },
+      nodeId: 6,
+    },
+  ]);
+});

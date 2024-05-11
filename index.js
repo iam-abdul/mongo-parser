@@ -1,4 +1,5 @@
 import { parse } from "acorn";
+import exp from "constants";
 import fs from "fs";
 /*
  * i will follow this format
@@ -119,7 +120,30 @@ const extractModelFromExpressionStatement = (expression) => {
         model: modelName,
         jsSchemaName,
       };
+    } else if (expression.right.type === "LogicalExpression") {
+      // this line is for finding the model declaration
+      // this works for "module.exports = mongoose.models.Admins || mongoose.model("Admins", AdminSchema);"
+      // idk why someone will do this kind of export. may god help them.
+      if (expression.right.right.type === "CallExpression") {
+        return extractModelFromCallExpression(expression.right.right);
+      }
     }
+  }
+};
+
+const extractModelFromCallExpression = (expression) => {
+  if (
+    expression.type === "CallExpression" &&
+    expression.callee.type === "MemberExpression" &&
+    expression.callee.object.name === "mongoose" &&
+    expression.callee.property.name === "model"
+  ) {
+    const modelName = expression.arguments[0].value;
+    const jsSchemaName = expression.arguments[1].name;
+    return {
+      model: modelName,
+      jsSchemaName,
+    };
   }
 };
 
@@ -141,33 +165,27 @@ const extractModel = (fileContent) => {
       const thisNodeDeclarations = thisNode.declarations;
       for (let y = 0; y < thisNodeDeclarations.length; y++) {
         const currentDeclaration = thisNodeDeclarations[y];
-        if (
-          currentDeclaration.type === "VariableDeclarator" &&
-          currentDeclaration.init.type === "CallExpression" &&
-          currentDeclaration.init.callee.type === "MemberExpression" &&
-          currentDeclaration.init.callee.object.name === "mongoose" &&
-          currentDeclaration.init.callee.property.name === "model"
-        ) {
-          const modelName = currentDeclaration.init.arguments[0].value;
-          const jsSchemaName = currentDeclaration.init.arguments[1].name;
+        if (currentDeclaration.type === "VariableDeclarator") {
           const nodeId = x;
 
+          const model = extractModelFromCallExpression(currentDeclaration.init);
           /**
            * with this jsSchemaName, there could be multiple declarations
            * we need to find the immediate before declaration
            */
-
-          const schema = findTheImmediateSchemaBeforeGivenNode(
-            nodeId,
-            programBody,
-            jsSchemaName
-          );
-          models.push({
-            model: modelName,
-            jsSchemaName,
-            schema: schema,
-            nodeId,
-          });
+          if (model) {
+            const schema = findTheImmediateSchemaBeforeGivenNode(
+              nodeId,
+              programBody,
+              model.jsSchemaName
+            );
+            models.push({
+              model: model.model,
+              jsSchemaName: model.jsSchemaName,
+              schema: schema,
+              nodeId,
+            });
+          }
         }
       }
     } else if (thisNode.type === "ExpressionStatement") {
@@ -197,28 +215,27 @@ const extractModel = (fileContent) => {
 
 const fileContent = `
 const mongoose = require("mongoose");
-const timestamps = require("mongoose-timestamp");
-const uniqueValidator = require("mongoose-unique-validator");
-
-const AdminSchema = new mongoose.Schema({
-    name: { type: String, default: null },
-    // role: { type: String, enum: ['super-admin', 'executive', 'data-entry-operator'] },
-    roleId: { type: mongoose.Schema.Types.ObjectId, ref: "Roles", default: null },
-    email: { type: String, default: null, unique: true },
-    phone: { type: Number, default: null },
-    location: { type: String, default: null },
-    address: { type: String, default: null },
-    password: { type: String },
-    image: { type: String, default: null },
-    active: { type: Boolean, default: true },
-    isDeleted: { type: Boolean, default: false },
-    created_by: { type: mongoose.Schema.Types.ObjectId, ref: "Admins", default: null },
-});
-
-AdminSchema.plugin(timestamps);
-AdminSchema.plugin(uniqueValidator);
-// module.exports = mongoose.models.Admins || mongoose.model("Admins", AdminSchema);
-module.exports =  mongoose.model("Admins", AdminSchema);
+  const timestamps = require("mongoose-timestamp");
+  const uniqueValidator = require("mongoose-unique-validator");
+  
+  const AdminSchema = new mongoose.Schema({
+      name: { type: String, default: null },
+      // role: { type: String, enum: ['super-admin', 'executive', 'data-entry-operator'] },
+      roleId: { type: mongoose.Schema.Types.ObjectId, ref: "Roles", default: null },
+      email: { type: String, default: null, unique: true },
+      phone: { type: Number, default: null },
+      location: { type: String, default: null },
+      address: { type: String, default: null },
+      password: { type: String },
+      image: { type: String, default: null },
+      active: { type: Boolean, default: true },
+      isDeleted: { type: Boolean, default: false },
+      created_by: { type: mongoose.Schema.Types.ObjectId, ref: "Admins", default: null },
+  });
+  
+  AdminSchema.plugin(timestamps);
+  AdminSchema.plugin(uniqueValidator);
+  module.exports = mongoose.models.Admins || mongoose.model("Admins", AdminSchema);
 `;
 
 console.log(JSON.stringify(extractModel(fileContent), null, 2));
