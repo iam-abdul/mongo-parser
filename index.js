@@ -1,5 +1,4 @@
 import { parse } from "acorn";
-import exp from "constants";
 import fs from "fs";
 /*
  * i will follow this format
@@ -10,6 +9,12 @@ import fs from "fs";
  *    }
  *}
  */
+
+const onlyDevLog = (message) => {
+  if (process.env.NODE_ENV === "dev") {
+    console.log(message);
+  }
+};
 
 const traverseMemberExpressionValue = (expressions) => {
   const propertName = expressions.property.name;
@@ -22,7 +27,7 @@ const traverseMemberExpressionValue = (expressions) => {
   return `${objectName}.${propertName}`;
 };
 
-function traverseArguments(args) {
+function traverseArguments(args, programBody, nodeId) {
   let result = {};
 
   args.forEach((arg) => {
@@ -31,17 +36,21 @@ function traverseArguments(args) {
       let value;
 
       if (arg.value.type === "Identifier") {
-        value = arg.value.name;
+        value = extractTheVariableAtDeclaration(
+          arg.value.name,
+          programBody,
+          nodeId
+        );
       } else if (arg.value.type === "Literal") {
         value = arg.value.value;
       } else if (arg.value.type === "ObjectExpression") {
-        value = traverseArguments(arg.value.properties);
+        value = traverseArguments(arg.value.properties, programBody, nodeId);
       } else if (arg.value.type === "MemberExpression") {
         value = traverseMemberExpressionValue(arg.value);
       } else if (arg.value.type === "ArrayExpression") {
         value = arg.value.elements.map((element) => {
           if (element.type === "ObjectExpression") {
-            return traverseArguments(element.properties);
+            return traverseArguments(element.properties, programBody, nodeId);
           }
         });
       }
@@ -51,12 +60,6 @@ function traverseArguments(args) {
 
   return result;
 }
-
-const extractTheSchemaProperties = (args) => {
-  const result = traverseArguments(args);
-  // console.log("the result ", result);
-  return result;
-};
 
 const findTheImmediateSchemaBeforeGivenNode = (
   nodeId,
@@ -75,8 +78,10 @@ const findTheImmediateSchemaBeforeGivenNode = (
         thisNodeExpression.left.name === jsSchemaName
       ) {
         console.log("found the schema reassignment");
-        const model = extractTheSchemaProperties(
-          thisNodeExpression.right.arguments[0].properties
+        const model = traverseArguments(
+          thisNodeExpression.right.arguments[0].properties,
+          programBody,
+          nodeId
         );
         return model;
       }
@@ -93,8 +98,10 @@ const findTheImmediateSchemaBeforeGivenNode = (
           currentDeclaration.type === "VariableDeclarator" &&
           currentDeclaration.id.name === jsSchemaName
         ) {
-          const model = extractTheSchemaProperties(
-            currentDeclaration.init.arguments[0].properties
+          const model = traverseArguments(
+            currentDeclaration.init.arguments[0].properties,
+            programBody,
+            nodeId
           );
 
           return model;
@@ -147,6 +154,41 @@ const extractModelFromCallExpression = (expression) => {
   }
 };
 
+const extractTheVariableAtDeclaration = (name, programBody, nodeId) => {
+  console.log("extracting the variable", nodeId);
+  const mongooseTypes = [
+    "String",
+    "Number",
+    "Date",
+    "Buffer",
+    "Boolean",
+    "Mixed",
+    "ObjectId",
+    "Array",
+  ];
+
+  if (mongooseTypes.includes(name)) {
+    return name;
+  }
+
+  for (let x = nodeId; x >= 0; x--) {
+    const thisNode = programBody[x];
+    if (thisNode.type === "VariableDeclaration") {
+      for (let y = 0; y < thisNode.declarations.length; y++) {
+        const currentDeclaration = thisNode.declarations[y];
+        if (currentDeclaration.id.name === name) {
+          console.log("found the variable");
+          return traverseArguments(
+            currentDeclaration.init.properties,
+            programBody,
+            nodeId
+          );
+        }
+      }
+    }
+  }
+};
+
 const extractModel = (fileContent) => {
   // parse model string
   const ast = parse(fileContent, {
@@ -154,6 +196,7 @@ const extractModel = (fileContent) => {
   });
 
   fs.writeFileSync("ast.json", JSON.stringify(ast, null, 2));
+
   // filtering the model names
   const models = [];
   const programBody = ast.body;
@@ -203,7 +246,6 @@ const extractModel = (fileContent) => {
           schema: schema,
           nodeId,
         });
-        console.log("model", model);
       }
     }
   }
@@ -212,5 +254,35 @@ const extractModel = (fileContent) => {
 
   return models;
 };
+
+if (process.env.NODE_ENV === "dev") {
+  const result = extractModel(`
+
+  import mongoose from "mongoose";
+const Schema = mongoose.Schema;
+let UserSchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  date: {
+    type: Date,
+    default: Date.now,
+  },
+});
+const User = mongoose.model("User", UserSchema);
+
+  `);
+  console.log(JSON.stringify(result, null, 2));
+}
 
 export default extractModel;

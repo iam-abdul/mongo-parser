@@ -355,3 +355,49 @@ it("should be able to extract model with module.exports = ", () => {
     },
   ]);
 });
+
+it("should be able to find and assign the value of identifiers or variables in the schema", () => {
+  const fileContent = `
+  import mongoose from "mongoose";
+  const Schema = mongoose.Schema;
+  
+  let comments = {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+  };
+
+  const postSchema = new Schema({
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    comments
+  });
+  
+  const Post = mongoose.model("Post", postSchema);
+  export default Post;
+  `;
+
+  const result = extractModel(fileContent);
+  expect(result).toEqual([
+    {
+      model: "Post",
+      jsSchemaName: "postSchema",
+      schema: {
+        user: {
+          type: "Schema.Types.ObjectId",
+          ref: "User",
+        },
+        comments: {
+          user: {
+            type: "Schema.Types.ObjectId",
+            ref: "User",
+          },
+        },
+      },
+      nodeId: 4,
+    },
+  ]);
+});

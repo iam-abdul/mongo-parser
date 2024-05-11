@@ -1,6 +1,6 @@
 {
   "name": "mongoose-parser",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -9,7 +9,7 @@
     "url": "git+https://github.com/iam-abdul/mongo-parser-visualizer.git"
   },
   "scripts": {
-    "dev": "nodemon -x \"clear && node index.js\" --ignore ast.json",
+    "dev": "NODE_ENV=dev nodemon -x \"clear && node index.js\" --ignore ast.json",
     "test": "vitest"
   },
   "keywords": [
