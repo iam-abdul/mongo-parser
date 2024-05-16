@@ -173,6 +173,21 @@ const extractTheVariableAtDeclaration = (name, programBody, nodeId) => {
 
   for (let x = nodeId; x >= 0; x--) {
     const thisNode = programBody[x];
+
+    if (thisNode.type === "ExpressionStatement") {
+      const thisNodeExpression = thisNode.expression;
+      if (thisNodeExpression.type === "AssignmentExpression") {
+        if (thisNodeExpression.left.name === name) {
+          console.log("found the variable");
+          return traverseArguments(
+            thisNodeExpression.right.properties,
+            programBody,
+            nodeId
+          );
+        }
+      }
+    }
+
     if (thisNode.type === "VariableDeclaration") {
       for (let y = 0; y < thisNode.declarations.length; y++) {
         const currentDeclaration = thisNode.declarations[y];
@@ -195,7 +210,9 @@ const extractModel = (fileContent) => {
     sourceType: "module",
   });
 
-  fs.writeFileSync("ast.json", JSON.stringify(ast, null, 2));
+  if (process.env.NODE_ENV === "dev") {
+    fs.writeFileSync("ast.json", JSON.stringify(ast, null, 2));
+  }
 
   // filtering the model names
   const models = [];
@@ -257,29 +274,48 @@ const extractModel = (fileContent) => {
 
 if (process.env.NODE_ENV === "dev") {
   const result = extractModel(`
+  const mongoose = require("mongoose");
+// var timestamps = require('mongoose-timestamp');
+var uniqueValidator = require("mongoose-unique-validator");
 
-  import mongoose from "mongoose";
-const Schema = mongoose.Schema;
-let UserSchema = new Schema({
-  name: {
-    type: String,
+const userMappedConceptSchema = new mongoose.Schema({
+  concept_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Concepts",
     required: true,
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
+  chapter_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Chapters",
     required: true,
   },
-  date: {
-    type: Date,
-    default: Date.now,
+  subject_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Subjects",
+    required: true,
   },
+  attempted_questions: [{ type: Object, default: {} }],
+  wrong_answered_questions: [],
+  right_answered_questions: [],
+  paused_at: [{ type: Object, default: {} }],
+  progress: { type: Number, default: 0 },
+  test_status: {
+    type: String,
+    enum: ["paused", "finish", "started"],
+    default: "started",
+  },
+  cps: { type: String, default: null },
+
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "Students" },
 });
-const User = mongoose.model("User", UserSchema);
+
+// SchoolSchema.plugin(timestamps);
+userMappedConceptSchema.plugin(uniqueValidator, {
+  message: "Error, expected {PATH} to be unique.",
+});
+module.exports =
+  mongoose.models.userMappedConcepts ||
+  mongoose.model("userMappedConcepts", userMappedConceptSchema);
 
   `);
   console.log(JSON.stringify(result, null, 2));

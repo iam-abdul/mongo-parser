@@ -401,3 +401,132 @@ it("should be able to find and assign the value of identifiers or variables in t
     },
   ]);
 });
+
+it("should be able to extract the schema with variables in the schema", () => {
+  const fileContent = `
+  import mongoose from "mongoose";
+  const Schema = mongoose.Schema;
+  
+
+  const content = {
+    type: "String",
+    required: true,
+  };
+
+  let comments = {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    content
+  };
+
+  const postSchema = new Schema({
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    comments
+  });
+  
+  const Post = mongoose.model("Post", postSchema);
+  export default Post;
+
+  `;
+
+  const result = extractModel(fileContent);
+  expect(result).toEqual([
+    {
+      model: "Post",
+      jsSchemaName: "postSchema",
+      schema: {
+        user: {
+          type: "Schema.Types.ObjectId",
+          ref: "User",
+        },
+        comments: {
+          user: {
+            type: "Schema.Types.ObjectId",
+            ref: "User",
+          },
+          content: {
+            type: "String",
+            required: true,
+          },
+        },
+      },
+      nodeId: 5,
+    },
+  ]);
+});
+
+it("should be able to extract the schema with reassigned variables in the schema", () => {
+  const fileContent = `
+  import mongoose from "mongoose";
+  const Schema = mongoose.Schema;
+  
+
+  let content = {
+    type: "String",
+    required: true,
+  };
+
+  let comments = {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    content
+  };
+
+  content = {
+    type: "String",
+    required: false,
+  };
+
+  comments = {
+    text: {
+      type: "String",
+      required: true,
+    },
+    content
+  }
+
+  const postSchema = new Schema({
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    comments
+  });
+  
+  const Post = mongoose.model("Post", postSchema);
+  export default Post;
+
+  `;
+
+  const result = extractModel(fileContent);
+  expect(result).toEqual([
+    {
+      model: "Post",
+      jsSchemaName: "postSchema",
+      schema: {
+        user: {
+          type: "Schema.Types.ObjectId",
+          ref: "User",
+        },
+        comments: {
+          text: {
+            type: "String",
+            required: true,
+          },
+          content: {
+            type: "String",
+            required: false,
+          },
+        },
+      },
+      nodeId: 7,
+    },
+  ]);
+});
