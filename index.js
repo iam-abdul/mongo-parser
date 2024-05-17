@@ -323,41 +323,6 @@ enum ECategory {
   PHOTOGRAPHY = "photography",
 }
 
-interface IShopDetails {
-  businessName: string;
-  businessType: string;
-  category: ECategory;
-  description: string;
-  state: string;
-  city: string;
-  pincode: number;
-}
-
-interface IBankDetails {
-  name: string;
-  accountNumber: string;
-  branchNam: string;
-  ifsc: string;
-  city: string;
-  pincode: number;
-}
-
-interface IProof {
-  pan: string;
-  aadhar: string;
-  gst: string;
-}
-
-interface IRangeOfProducts {
-  category: ECategory;
-  averageUploadRate: number;
-  initialUploadRate: number;
-}
-
-interface IReturnPolicy {
-  returnable: boolean;
-  returnableDays: number;
-}
 
 interface IRetailer {
   name: string;
@@ -378,45 +343,8 @@ interface IRetailer {
 
 const retailerSchema = new Schema<IRetailer>({
   name: { type: String, required: true },
-  email: { type: String, required: true },
-  phoneNumber: { type: String, required: true },
-  otp: { type: Number, required: true },
-  otp_expiry: { type: Date, required: true },
-  isEmailVerified: { type: Boolean, required: true },
-  isPhoneVerified: { type: Boolean, required: true },
-  createdAt: { type: Date, default: Date.now },
-  shopDetails: {
-    businessName: { type: String, required: true },
-    businessType: { type: String, required: true },
-    category: { type: String, enum: Object.values(ECategory), required: true },
-    description: { type: String, required: true },
-    state: { type: String, required: true },
-    city: { type: String, required: true },
-    pincode: { type: Number, required: true },
-  },
-  bankDetails: {
-    name: { type: String, required: true },
-    accountNumber: { type: String, required: true },
-    branchNam: { type: String, required: true },
-    ifsc: { type: String, required: true },
-    city: { type: String, required: true },
-    pincode: { type: Number, required: true },
-  },
-  proof: {
-    pan: { type: String, required: true },
-    aadhar: { type: String, required: true },
-    gst: { type: String, required: true },
-  },
-  rangeOfProducts: {
-    category: { type: String, enum: Object.values(ECategory), required: true },
-    averageUploadRate: { type: Number, required: true },
-    initialUploadRate: { type: Number, required: true },
-  },
-  returnPolicy: {
-    returnable: { type: Boolean, required: true },
-    returnableDays: { type: Number, required: true },
-  },
-  gearGuruSponsorship: { type: Boolean, required: true },
+  email: { type: String, required: true }
+  category: { type: String, enum:Object.values(ECategory), required: true },
 });
 
 const RetailerModel = mongoose.model<IRetailer>("Retailer", retailerSchema);
