@@ -338,7 +338,6 @@ interface IRetailer {
   proof?: IProof;
   rangeOfProducts?: IRangeOfProducts;
   returnPolicy?: IReturnPolicy;
-  gearGuruSponsorship: boolean;
 }
 
 const retailerSchema = new Schema<IRetailer>({
