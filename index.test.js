@@ -666,3 +666,128 @@ it("should be able to extract the schema for typescript files ", () => {
     },
   ]);
 });
+
+it("should be able to ignore the ENUMs in the schema ", () => {
+  const fileContent = `
+
+import mongoose, { Schema } from "mongoose";
+
+enum ECategory {
+  CYCLES = "cycles",
+  MUSICAL = "musical",
+  PHOTOGRAPHY = "photography",
+}
+
+
+interface IRetailer {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  otp: number;
+  otp_expiry: Date;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  createdAt: Date;
+  shopDetails?: IShopDetails;
+  bankDetails?: IBankDetails;
+  proof?: IProof;
+  rangeOfProducts?: IRangeOfProducts;
+  returnPolicy?: IReturnPolicy;
+  gearGuruSponsorship: boolean;
+}
+
+const retailerSchema = new Schema<IRetailer>({
+  name: { type: String, required: true },
+  email: { type: String, required: true }
+});
+
+const RetailerModel = mongoose.model<IRetailer>("Retailer", retailerSchema);
+
+export { RetailerModel, IRetailer };
+
+
+    `;
+
+  const result = extractModel(fileContent, true);
+  expect(result).toEqual([
+    {
+      model: "Retailer",
+      jsSchemaName: "retailerSchema",
+      schema: {
+        name: {
+          type: "String",
+          required: true,
+        },
+        email: {
+          type: "String",
+          required: true,
+        },
+      },
+      nodeId: 4,
+    },
+  ]);
+});
+
+it("should be able to extract the schema with referred enums [typescript]", () => {
+  const fileContent = `
+  import mongoose, { Schema } from "mongoose";
+
+  enum ECategory {
+    CYCLES = "cycles",
+    MUSICAL = "musical",
+    PHOTOGRAPHY = "photography",
+  }
+  
+  
+  interface IRetailer {
+    name: string;
+    email: string;
+    phoneNumber: string;
+    otp: number;
+    otp_expiry: Date;
+    isEmailVerified: boolean;
+    isPhoneVerified: boolean;
+    createdAt: Date;
+    shopDetails?: IShopDetails;
+    bankDetails?: IBankDetails;
+    proof?: IProof;
+    rangeOfProducts?: IRangeOfProducts;
+    returnPolicy?: IReturnPolicy;
+    gearGuruSponsorship: boolean;
+  }
+  
+  const retailerSchema = new Schema<IRetailer>({
+    name: { type: String, required: true },
+    email: { type: String, required: true }
+    category: { type: String, enum:Object.values(ECategory), required: true },
+  });
+  
+  const RetailerModel = mongoose.model<IRetailer>("Retailer", retailerSchema);
+  
+  export { RetailerModel, IRetailer };
+  
+`;
+
+  const result = extractModel(fileContent, true);
+  expect(result).toEqual([
+    {
+      model: "Retailer",
+      jsSchemaName: "retailerSchema",
+      schema: {
+        name: {
+          type: "String",
+          required: true,
+        },
+        email: {
+          type: "String",
+          required: true,
+        },
+        category: {
+          type: "String",
+          required: true,
+        },
+      },
+      nodeId: 4,
+    },
+  ]);
+});

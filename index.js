@@ -138,6 +138,7 @@ const extractModelFromExpressionStatement = (expression) => {
 };
 
 const extractModelFromCallExpression = (expression) => {
+  if (!expression) return;
   if (
     expression.type === "CallExpression" &&
     expression.callee.type === "MemberExpression" &&
@@ -313,19 +314,43 @@ const extractModel = (fileContent, isTypescript = false) => {
 if (process.env.NODE_ENV === "dev") {
   const result = extractModel(
     `
-    import { model, Schema, Types } from "mongoose";
 
-    
-    const ApprovalHistorySchema: Schema = new Schema(
-      {
-        company: { type: Schema.Types.ObjectId, required: true, ref: "Company" },
-        brand: { type: Schema.Types.ObjectId, required: true, ref: "Brand" },    
-      }
-    );
-   
+    import mongoose, { Schema } from "mongoose";
 
-    const yoyo =  model("ApprovalHistory", ApprovalHistorySchema);
-    export yoyo
+enum ECategory {
+  CYCLES = "cycles",
+  MUSICAL = "musical",
+  PHOTOGRAPHY = "photography",
+}
+
+
+interface IRetailer {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  otp: number;
+  otp_expiry: Date;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  createdAt: Date;
+  shopDetails?: IShopDetails;
+  bankDetails?: IBankDetails;
+  proof?: IProof;
+  rangeOfProducts?: IRangeOfProducts;
+  returnPolicy?: IReturnPolicy;
+}
+
+const retailerSchema = new Schema<IRetailer>({
+  name: { type: String, required: true },
+  email: { type: String, required: true }
+  category: { type: String, enum:Object.values(ECategory), required: true },
+});
+
+const RetailerModel = mongoose.model<IRetailer>("Retailer", retailerSchema);
+
+export { RetailerModel, IRetailer };
+
+
     
   `,
     true
