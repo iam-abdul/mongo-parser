@@ -1,6 +1,6 @@
 {
   "name": "mongoose-parser",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -26,7 +26,8 @@
   "license": "MIT",
   "dependencies": {
     "acorn": "^8.11.3",
-    "mongoose": "^8.3.4"
+    "mongoose": "^8.3.4",
+    "typescript": "^5.4.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
