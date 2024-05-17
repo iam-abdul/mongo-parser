@@ -138,6 +138,7 @@ const extractModelFromExpressionStatement = (expression) => {
 };
 
 const extractModelFromCallExpression = (expression) => {
+  if (!expression) return;
   if (
     expression.type === "CallExpression" &&
     expression.callee.type === "MemberExpression" &&
@@ -313,19 +314,116 @@ const extractModel = (fileContent, isTypescript = false) => {
 if (process.env.NODE_ENV === "dev") {
   const result = extractModel(
     `
-    import { model, Schema, Types } from "mongoose";
 
-    
-    const ApprovalHistorySchema: Schema = new Schema(
-      {
-        company: { type: Schema.Types.ObjectId, required: true, ref: "Company" },
-        brand: { type: Schema.Types.ObjectId, required: true, ref: "Brand" },    
-      }
-    );
-   
+    import mongoose, { Schema } from "mongoose";
 
-    const yoyo =  model("ApprovalHistory", ApprovalHistorySchema);
-    export yoyo
+enum ECategory {
+  CYCLES = "cycles",
+  MUSICAL = "musical",
+  PHOTOGRAPHY = "photography",
+}
+
+interface IShopDetails {
+  businessName: string;
+  businessType: string;
+  category: ECategory;
+  description: string;
+  state: string;
+  city: string;
+  pincode: number;
+}
+
+interface IBankDetails {
+  name: string;
+  accountNumber: string;
+  branchNam: string;
+  ifsc: string;
+  city: string;
+  pincode: number;
+}
+
+interface IProof {
+  pan: string;
+  aadhar: string;
+  gst: string;
+}
+
+interface IRangeOfProducts {
+  category: ECategory;
+  averageUploadRate: number;
+  initialUploadRate: number;
+}
+
+interface IReturnPolicy {
+  returnable: boolean;
+  returnableDays: number;
+}
+
+interface IRetailer {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  otp: number;
+  otp_expiry: Date;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  createdAt: Date;
+  shopDetails?: IShopDetails;
+  bankDetails?: IBankDetails;
+  proof?: IProof;
+  rangeOfProducts?: IRangeOfProducts;
+  returnPolicy?: IReturnPolicy;
+  gearGuruSponsorship: boolean;
+}
+
+const retailerSchema = new Schema<IRetailer>({
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  phoneNumber: { type: String, required: true },
+  otp: { type: Number, required: true },
+  otp_expiry: { type: Date, required: true },
+  isEmailVerified: { type: Boolean, required: true },
+  isPhoneVerified: { type: Boolean, required: true },
+  createdAt: { type: Date, default: Date.now },
+  shopDetails: {
+    businessName: { type: String, required: true },
+    businessType: { type: String, required: true },
+    category: { type: String, enum: Object.values(ECategory), required: true },
+    description: { type: String, required: true },
+    state: { type: String, required: true },
+    city: { type: String, required: true },
+    pincode: { type: Number, required: true },
+  },
+  bankDetails: {
+    name: { type: String, required: true },
+    accountNumber: { type: String, required: true },
+    branchNam: { type: String, required: true },
+    ifsc: { type: String, required: true },
+    city: { type: String, required: true },
+    pincode: { type: Number, required: true },
+  },
+  proof: {
+    pan: { type: String, required: true },
+    aadhar: { type: String, required: true },
+    gst: { type: String, required: true },
+  },
+  rangeOfProducts: {
+    category: { type: String, enum: Object.values(ECategory), required: true },
+    averageUploadRate: { type: Number, required: true },
+    initialUploadRate: { type: Number, required: true },
+  },
+  returnPolicy: {
+    returnable: { type: Boolean, required: true },
+    returnableDays: { type: Number, required: true },
+  },
+  gearGuruSponsorship: { type: Boolean, required: true },
+});
+
+const RetailerModel = mongoose.model<IRetailer>("Retailer", retailerSchema);
+
+export { RetailerModel, IRetailer };
+
+
     
   `,
     true
