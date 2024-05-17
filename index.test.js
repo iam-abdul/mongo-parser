@@ -28,7 +28,7 @@ const User = mongoose.model("User", UserSchema);
     `;
 
   const result = extractModel(fileContent);
-  console.log(result);
+
   expect(result).toEqual([
     {
       model: "User",
@@ -527,6 +527,142 @@ it("should be able to extract the schema with reassigned variables in the schema
         },
       },
       nodeId: 7,
+    },
+  ]);
+});
+
+it("should be able to extract these kind of model declarations ", () => {
+  const fileContent = `
+  import { model, Schema } from "mongoose";
+    const ApprovalHistorySchema = new Schema({
+    company: { type: Schema.Types.ObjectId, required: true, ref: "Company" },
+    brand: { type: Schema.Types.ObjectId, required: true, ref: "Brand" },
+  });
+
+  ApprovalHistorySchema.index({ company: 1 });
+  ApprovalHistorySchema.index({ brand: 1 });
+  ApprovalHistorySchema.index({ user_type: 1 });
+  export default model("ApprovalHistory", ApprovalHistorySchema);
+  `;
+
+  const result = extractModel(fileContent);
+  expect(result).toEqual([
+    {
+      model: "ApprovalHistory",
+      jsSchemaName: "ApprovalHistorySchema",
+      schema: {
+        company: {
+          type: "Schema.Types.ObjectId",
+          required: true,
+          ref: "Company",
+        },
+        brand: {
+          type: "Schema.Types.ObjectId",
+          required: true,
+          ref: "Brand",
+        },
+      },
+      nodeId: 5,
+    },
+  ]);
+});
+
+it("should be able to extract schema for const yoyo =  model(ApprovalHistory, ApprovalHistorySchema) ", () => {
+  const fileContent = `
+  import { model, Schema, Types } from "mongoose";
+
+    
+    const ApprovalHistorySchema: Schema = new Schema(
+      {
+        company: { type: Schema.Types.ObjectId, required: true, ref: "Company" },
+        brand: { type: Schema.Types.ObjectId, required: true, ref: "Brand" },    
+      }
+    );
+   
+
+    const yoyo =  model("ApprovalHistory", ApprovalHistorySchema);
+    export yoyo
+    `;
+
+  expect(extractModel(fileContent, true)).toEqual([
+    {
+      model: "ApprovalHistory",
+      jsSchemaName: "ApprovalHistorySchema",
+      schema: {
+        company: {
+          type: "Schema.Types.ObjectId",
+          required: true,
+          ref: "Company",
+        },
+        brand: {
+          type: "Schema.Types.ObjectId",
+          required: true,
+          ref: "Brand",
+        },
+      },
+      nodeId: 2,
+    },
+  ]);
+});
+
+it("should be able to extract the schema for typescript files ", () => {
+  const fileContent = `
+  import mongoose, { Document, Schema, InferSchemaType } from "mongoose";
+  interface IUser {
+    full_name: string;
+    email: string;
+    phone_number: string;
+    otp: string;
+    email_verified: boolean;
+    phone_verified: boolean;
+  }
+
+  const userSchema = new Schema<IUser>({
+    full_name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    phone_number: { type: String, unique: true },
+    otp: { type: String },
+    email_verified: { type: Boolean, default: false },
+    phone_verified: { type: Boolean, default: false },
+  });
+
+  const UserModel = mongoose.model<IUser>("User", userSchema);
+
+  export { UserModel, IUser };
+  `;
+
+  const result = extractModel(fileContent, true);
+  expect(result).toEqual([
+    {
+      model: "User",
+      jsSchemaName: "userSchema",
+      schema: {
+        full_name: {
+          type: "String",
+          required: true,
+        },
+        email: {
+          type: "String",
+          required: true,
+          unique: true,
+        },
+        phone_number: {
+          type: "String",
+          unique: true,
+        },
+        otp: {
+          type: "String",
+        },
+        email_verified: {
+          type: "Boolean",
+          default: false,
+        },
+        phone_verified: {
+          type: "Boolean",
+          default: false,
+        },
+      },
+      nodeId: 2,
     },
   ]);
 });

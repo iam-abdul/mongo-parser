@@ -1,5 +1,6 @@
 import { parse } from "acorn";
 import fs from "fs";
+import ts from "typescript";
 /*
  * i will follow this format
  *    {
@@ -77,7 +78,6 @@ const findTheImmediateSchemaBeforeGivenNode = (
         thisNodeExpression.type === "AssignmentExpression" &&
         thisNodeExpression.left.name === jsSchemaName
       ) {
-        console.log("found the schema reassignment");
         const model = traverseArguments(
           thisNodeExpression.right.arguments[0].properties,
           programBody,
@@ -88,7 +88,6 @@ const findTheImmediateSchemaBeforeGivenNode = (
     } else {
       const thisNodeDeclarations = thisNode.declarations;
       if (!thisNodeDeclarations) {
-        console.log("no declarations");
         continue;
       }
       for (let y = 0; y < thisNodeDeclarations.length; y++) {
@@ -151,11 +150,20 @@ const extractModelFromCallExpression = (expression) => {
       model: modelName,
       jsSchemaName,
     };
+  } else if (
+    expression.type === "CallExpression" &&
+    expression.callee.name === "model"
+  ) {
+    const modelName = expression.arguments[0].value;
+    const jsSchemaName = expression.arguments[1].name;
+    return {
+      model: modelName,
+      jsSchemaName,
+    };
   }
 };
 
 const extractTheVariableAtDeclaration = (name, programBody, nodeId) => {
-  console.log("extracting the variable", nodeId);
   const mongooseTypes = [
     "String",
     "Number",
@@ -178,7 +186,6 @@ const extractTheVariableAtDeclaration = (name, programBody, nodeId) => {
       const thisNodeExpression = thisNode.expression;
       if (thisNodeExpression.type === "AssignmentExpression") {
         if (thisNodeExpression.left.name === name) {
-          console.log("found the variable");
           return traverseArguments(
             thisNodeExpression.right.properties,
             programBody,
@@ -192,7 +199,6 @@ const extractTheVariableAtDeclaration = (name, programBody, nodeId) => {
       for (let y = 0; y < thisNode.declarations.length; y++) {
         const currentDeclaration = thisNode.declarations[y];
         if (currentDeclaration.id.name === name) {
-          console.log("found the variable");
           return traverseArguments(
             currentDeclaration.init.properties,
             programBody,
@@ -204,7 +210,18 @@ const extractTheVariableAtDeclaration = (name, programBody, nodeId) => {
   }
 };
 
-const extractModel = (fileContent) => {
+const extractModel = (fileContent, isTypescript = false) => {
+  // compile typescript to javascript
+  if (isTypescript) {
+    const result = ts.transpileModule(fileContent, {
+      compilerOptions: {
+        target: 99,
+      },
+    });
+
+    fileContent = result.outputText;
+  }
+
   // parse model string
   const ast = parse(fileContent, {
     sourceType: "module",
@@ -264,6 +281,27 @@ const extractModel = (fileContent) => {
           nodeId,
         });
       }
+    } else if (thisNode.type === "ExportDefaultDeclaration") {
+      if (
+        thisNode.declaration.type === "CallExpression" &&
+        thisNode.declaration.callee.name === "model"
+      ) {
+        const jsSchemaName = thisNode.declaration.arguments[1].name;
+        const nodeId = x;
+        const modelName = thisNode.declaration.arguments[0].value;
+        const schema = findTheImmediateSchemaBeforeGivenNode(
+          nodeId,
+          programBody,
+          jsSchemaName
+        );
+
+        models.push({
+          model: modelName,
+          jsSchemaName: jsSchemaName,
+          schema: schema,
+          nodeId,
+        });
+      }
     }
   }
 
@@ -273,51 +311,25 @@ const extractModel = (fileContent) => {
 };
 
 if (process.env.NODE_ENV === "dev") {
-  const result = extractModel(`
-  const mongoose = require("mongoose");
-// var timestamps = require('mongoose-timestamp');
-var uniqueValidator = require("mongoose-unique-validator");
+  const result = extractModel(
+    `
+    import { model, Schema, Types } from "mongoose";
 
-const userMappedConceptSchema = new mongoose.Schema({
-  concept_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Concepts",
-    required: true,
-  },
-  chapter_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Chapters",
-    required: true,
-  },
-  subject_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Subjects",
-    required: true,
-  },
-  attempted_questions: [{ type: Object, default: {} }],
-  wrong_answered_questions: [],
-  right_answered_questions: [],
-  paused_at: [{ type: Object, default: {} }],
-  progress: { type: Number, default: 0 },
-  test_status: {
-    type: String,
-    enum: ["paused", "finish", "started"],
-    default: "started",
-  },
-  cps: { type: String, default: null },
+    
+    const ApprovalHistorySchema: Schema = new Schema(
+      {
+        company: { type: Schema.Types.ObjectId, required: true, ref: "Company" },
+        brand: { type: Schema.Types.ObjectId, required: true, ref: "Brand" },    
+      }
+    );
+   
 
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "Students" },
-});
-
-// SchoolSchema.plugin(timestamps);
-userMappedConceptSchema.plugin(uniqueValidator, {
-  message: "Error, expected {PATH} to be unique.",
-});
-module.exports =
-  mongoose.models.userMappedConcepts ||
-  mongoose.model("userMappedConcepts", userMappedConceptSchema);
-
-  `);
+    const yoyo =  model("ApprovalHistory", ApprovalHistorySchema);
+    export yoyo
+    
+  `,
+    true
+  );
   console.log(JSON.stringify(result, null, 2));
 }
 
