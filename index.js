@@ -52,6 +52,8 @@ function traverseArguments(args, programBody, nodeId) {
         value = arg.value.elements.map((element) => {
           if (element.type === "ObjectExpression") {
             return traverseArguments(element.properties, programBody, nodeId);
+          } else if (element.type === "Literal") {
+            return element.value;
           }
         });
       }

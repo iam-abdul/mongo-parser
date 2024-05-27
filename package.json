@@ -1,6 +1,6 @@
 {
   "name": "mongoose-parser",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -20,7 +20,10 @@
     "schema parser",
     "schema",
     "parser",
-    "mongoose schema parser from file"
+    "mongoose schema parser from file",
+    "mongoose schema parser from string",
+    "mongoose schema parser",
+    "mongoose-parser"
   ],
   "author": "Abdul Rehman (Abd038)",
   "license": "MIT",
