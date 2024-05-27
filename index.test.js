@@ -791,3 +791,32 @@ it("should be able to extract the schema with referred enums [typescript]", () =
     },
   ]);
 });
+
+it("should be able to extract ENUM from schema files", () => {
+  const fileContent = `
+  import { model, Schema, Types } from "mongoose";
+  const ApprovalHistorySchema: Schema = new Schema(
+    {
+      status: {
+        type: String,
+        enum: ["requested", "approved", "rejected", "on-hold", "reset"],
+      },
+    }
+  );
+  export default model("ApprovalHistory", ApprovalHistorySchema);
+  `;
+  const result = extractModel(fileContent, true);
+  expect(result).toEqual([
+    {
+      model: "ApprovalHistory",
+      jsSchemaName: "ApprovalHistorySchema",
+      schema: {
+        status: {
+          type: "String",
+          enum: ["requested", "approved", "rejected", "on-hold", "reset"],
+        },
+      },
+      nodeId: 2,
+    },
+  ]);
+});
