@@ -54,6 +54,12 @@ function traverseArguments(args, programBody, nodeId) {
             return traverseArguments(element.properties, programBody, nodeId);
           } else if (element.type === "Literal") {
             return element.value;
+          } else if (element.type === "Identifier") {
+            return extractTheVariableAtDeclaration(
+              element.name,
+              programBody,
+              nodeId
+            );
           }
         });
       }
@@ -316,44 +322,16 @@ const extractModel = (fileContent, isTypescript = false) => {
 if (process.env.NODE_ENV === "dev") {
   const result = extractModel(
     `
-
-    import mongoose, { Schema } from "mongoose";
-
-enum ECategory {
-  CYCLES = "cycles",
-  MUSICAL = "musical",
-  PHOTOGRAPHY = "photography",
-}
-
-
-interface IRetailer {
-  name: string;
-  email: string;
-  phoneNumber: string;
-  otp: number;
-  otp_expiry: Date;
-  isEmailVerified: boolean;
-  isPhoneVerified: boolean;
-  createdAt: Date;
-  shopDetails?: IShopDetails;
-  bankDetails?: IBankDetails;
-  proof?: IProof;
-  rangeOfProducts?: IRangeOfProducts;
-  returnPolicy?: IReturnPolicy;
-}
-
-const retailerSchema = new Schema<IRetailer>({
-  name: { type: String, required: true },
-  email: { type: String, required: true }
-  category: { type: String, enum:Object.values(ECategory), required: true },
-});
-
-const RetailerModel = mongoose.model<IRetailer>("Retailer", retailerSchema);
-
-export { RetailerModel, IRetailer };
-
-
+    import mongoose from "mongoose";
+    const Schema = mongoose.Schema;
+    const userSchema = new Schema({
+      arrayOfObjs: [String],
+      somethingElse:[Number]
+    });
     
+    const User = mongoose.model("User", userSchema);
+    export default User;
+        
   `,
     true
   );

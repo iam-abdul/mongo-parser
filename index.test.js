@@ -820,3 +820,29 @@ it("should be able to extract ENUM from schema files", () => {
     },
   ]);
 });
+
+it("should be able to extract the array of Strings or Numbers from schema files", () => {
+  const fileContent = `
+  import mongoose from "mongoose";
+    const Schema = mongoose.Schema;
+    const userSchema = new Schema({
+      arrayOfObjs: [String],
+      somethingElse:[Number]
+    });
+    
+    const User = mongoose.model("User", userSchema);
+    export default User;
+  `;
+  const result = extractModel(fileContent);
+  expect(result).toEqual([
+    {
+      model: "User",
+      jsSchemaName: "userSchema",
+      schema: {
+        arrayOfObjs: ["String"],
+        somethingElse: ["Number"],
+      },
+      nodeId: 3,
+    },
+  ]);
+});
